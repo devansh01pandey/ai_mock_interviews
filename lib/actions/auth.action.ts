@@ -1,6 +1,7 @@
 "use server";
 
 import { db, auth } from "@/firebase/admin";
+// import { doc } from "firebase/firestore";
 import { cookies } from "next/headers";
 
 const ONE_WEEK = 60 * 60 * 24 * 7
@@ -18,7 +19,7 @@ export async function signUp(params:SignUpParams) {
             };
         
         await db.collection("users").doc(uid).set({
-            uid, name, email
+            name, email
         });
 
         return {
@@ -33,7 +34,7 @@ export async function signUp(params:SignUpParams) {
             return{
                 success: false,
                 message: 'This email is already in use'
-            }
+            };
         }
         return{
             success: false,
@@ -59,7 +60,7 @@ export async function signIn(params:SignInParams) {
         await setSessionCookie(idToken);
         
     } catch (e: any) {
-        console.log(e);
+        console.log("");
 
         return {
             success: false,
@@ -73,7 +74,7 @@ export async function setSessionCookie(idToken: string) {
 
     const sessionCookie = await auth.createSessionCookie(idToken, {
         expiresIn: ONE_WEEK * 1000
-    })
+    });
 
     cookieStore.set('session',sessionCookie, {
         maxAge: ONE_WEEK,
@@ -89,16 +90,23 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const sessionCookie = cookieStore.get('session')?.value;
 
-    if(!sessionCookie) return null;
+    if (!sessionCookie) {
+        console.log('No session cookie found');
+        return null;
+    }
 
     try {
         const decodedClaims = await auth.verifySessionCookie(sessionCookie, true);
+        console.log('Decoded Claims:', decodedClaims);
         const userRecord = await db
             .collection('users')
             .doc(decodedClaims.uid)
             .get();
         
-        if(!userRecord.exists) return null;
+            if (!userRecord.exists) {
+                console.log('No user record found for uid:', decodedClaims.uid);
+                return null;
+            }
 
         return{
             ...userRecord.data(),
@@ -108,16 +116,42 @@ export async function getCurrentUser(): Promise<User | null> {
     } catch (e) {
         console.log(e);
 
-        return null;
-        
-    }
-    
+        return null;        
+    }    
 }
 
 export async function isAuthenticated() {
     const user = await getCurrentUser();
-
     return !!user;
     
+}
+
+export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null> {
+    const interviews = await db
+        .collection('interviews')
+        .where('userId', '==', userId)
+        .orderBy('createdAt', 'desc')
+        .get();
+
+    return interviews.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+    })) as Interview[];
+}
+
+export async function getLatestInterviews(params: GetLatestInterviewsParams): Promise<Interview[] | null> {
+    const{ userId, limit = 20 } = params;
+    const interviews = await db
+        .collection('interviews')
+        .orderBy('createdAt', 'desc')
+        .where('finalized', '==', true)
+        .where('userId', "!=", userId)
+        .limit(limit)
+        .get();
+
+    return interviews.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data()
+    })) as Interview[];
 }
 
