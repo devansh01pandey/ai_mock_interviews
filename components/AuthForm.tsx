@@ -25,8 +25,8 @@ const authFormSchema = (type: FormType) => {
 }
 
 const AuthForm = ({ type }: { type: FormType }) => {
-    const formSchema = authFormSchema(type);
     const router = useRouter();
+    const formSchema = authFormSchema(type);
 
       // 1. Define your form.
   const form = useForm<z.infer<typeof formSchema>>({
@@ -39,10 +39,10 @@ const AuthForm = ({ type }: { type: FormType }) => {
   })
  
   // 2. Define a submit handler.
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  const onSubmit= async(data : z.infer<typeof formSchema>) => {
     try{
         if(type === 'sign-up'){
-            const { name, email, password } = values;
+            const { name, email, password } = data;
             const userCredentials = await createUserWithEmailAndPassword(auth, email, password);
 
             const result = await signUp({
@@ -61,7 +61,7 @@ const AuthForm = ({ type }: { type: FormType }) => {
             router.push('/sign-in');
         }
         else {
-            const { email, password } = values;
+            const { email, password } = data;
 
             const userCredentials = await signInWithEmailAndPassword(auth, email, password);
 
@@ -78,8 +78,8 @@ const AuthForm = ({ type }: { type: FormType }) => {
             })
             
             toast.success("Signed in Successfully");
-            router.push('/');
-            router.refresh();
+            router.push("/");
+            // router.refresh();
         }
 
     } catch(error) {
@@ -87,9 +87,9 @@ const AuthForm = ({ type }: { type: FormType }) => {
         toast.error(`There was an error: ${error}`)
     }
 
-  }
+  };
 
-  const isSignIn = type === 'sign-in';
+  const isSignIn = type === "sign-in";
 
     return(
         <div className="card-border lg:min-w-[566px]">
