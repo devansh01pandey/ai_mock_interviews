@@ -127,6 +127,11 @@ export async function isAuthenticated() {
 }
 
 export async function getInterviewsByUserId(userId: string): Promise<Interview[] | null> {
+    if (!userId) {
+        console.error('No userId provided to getInterviewsByUserId');
+        return null;
+    }
+
     const interviews = await db
         .collection('interviews')
         .where('userId', '==', userId)
