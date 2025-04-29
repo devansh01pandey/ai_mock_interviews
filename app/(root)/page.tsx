@@ -4,13 +4,19 @@ import React from "react";
 import Image from "next/image";
 import { dummyInterviews } from "@/constants";
 import InterviewCard from "@/components/InterviewCard";
-import { getCurrentUser, getInterviewsByUserId } from "@/lib/actions/auth.action";
+import { getCurrentUser, getInterviewsByUserId, getLatestInterviews } from "@/lib/actions/auth.action";
 
 const Page = async() => {
 
   const user = await getCurrentUser();
-  const userInterviews = await getInterviewsByUserId(user?.id!);
+  const [userInterviews, latestInterviews] = await Promise.all([
+    await getInterviewsByUserId(user?.id!),
+    await getLatestInterviews({ userId: user?.id! })
+
+  ])
+
   const hasPastInterviews = userInterviews?.length > 0;
+  const hasUpcomingInterviews = latestInterviews?.length > 0;
 
 
   return(
@@ -49,9 +55,13 @@ const Page = async() => {
 
         <h2>Take an interview</h2>
         <div className="interviews-section">
-        {dummyInterviews.map((interview) => (
-            <InterviewCard {...interview} key={interview.id} />
-          ))}
+          {hasUpcomingInterviews ? (
+            latestInterviews?.map((interview) => (
+              <InterviewCard {...interview} key ={interview.id}/>
+            ))) : (
+              <p>There are no  new interviews available</p>
+            )
+          }
 
           {/* <p>There are no interviews available</p> */}
         </div>
